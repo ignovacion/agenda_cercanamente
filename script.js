@@ -28,8 +28,8 @@ document.addEventListener("DOMContentLoaded", function () {
             Object.keys(reservations[formattedDate]).forEach(company => {
                 if (reservations[formattedDate][company] && reservations[formattedDate][company][hour]) {
                     totalCount += reservations[formattedDate][company][hour].length;
-                    reservations[formattedDate][company][hour].forEach(name => {
-                        reservationDetails += `<div class='event'><strong>${hour}</strong>: ${name} (${company})</div>`;
+                    reservations[formattedDate][company][hour].forEach(reservation => {
+                        reservationDetails += `<div class='event'><strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})</div>`;
                     });
                 }
             });
@@ -51,8 +51,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.reserve = function (hour) {
-        const name = prompt("Ingrese su nombre para la reserva:");
-        if (!name) return;
+        const person1 = prompt("Ingrese el primer nombre/asunto de la reunión:");
+        if (!person1) return;
+        const person2 = prompt("Ingrese el segundo nombre/asunto de la reunión:");
+        if (!person2) return;
 
         const company = companySelect.value;
         const formattedDate = dateInput.value;
@@ -61,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!reservations[formattedDate][company]) reservations[formattedDate][company] = {};
         if (!reservations[formattedDate][company][hour]) reservations[formattedDate][company][hour] = [];
 
-        reservations[formattedDate][company][hour].push(name);
+        reservations[formattedDate][company][hour].push({ person1, person2 });
         localStorage.setItem("reservations", JSON.stringify(reservations));
         loadReservations();
     };
