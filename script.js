@@ -1,20 +1,30 @@
+import { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
 document.addEventListener("DOMContentLoaded", function () {
     const schedule = document.getElementById("schedule");
     const companySelect = document.getElementById("company");
     const calendar = document.getElementById("calendar");
     const dateInput = document.getElementById("date-input");
+    const reservationsCollection = collection(db, "reservations");
     
     function formatDate(date) {
         return date.toISOString().split("T")[0];
     }
 
-    function loadReservations() {
+    async function loadReservations() {
         schedule.innerHTML = "";
         calendar.innerHTML = "";
-        const reservations = JSON.parse(localStorage.getItem("reservations")) || {};
         const formattedDate = dateInput.value;
-
-        if (!reservations[formattedDate]) reservations[formattedDate] = {};
+        
+        const querySnapshot = await getDocs(reservationsCollection);
+        let reservations = {};
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (!reservations[data.date]) reservations[data.date] = {};
+            if (!reservations[data.date][data.company]) reservations[data.date][data.company] = {};
+            if (!reservations[data.date][data.company][data.hour]) reservations[data.date][data.company][data.hour] = [];
+            reservations[data.date][data.company][data.hour].push({ id: doc.id, person1: data.person1, person2: data.person2 });
+        });
 
         const hours = [];
         for (let i = 8; i < 22; i++) {
@@ -24,14 +34,14 @@ document.addEventListener("DOMContentLoaded", function () {
         hours.forEach(hour => {
             let totalCount = 0;
             let reservationDetails = "";
-
-            Object.keys(reservations[formattedDate]).forEach(company => {
-                if (reservations[formattedDate][company] && reservations[formattedDate][company][hour]) {
-                    reservations[formattedDate][company][hour].forEach((reservation, index) => {
-                        reservationDetails += `<div class='event'>
+            
+            Object.keys(reservations[formattedDate] || {}).forEach(company => {
+                if (reservations[formattedDate][company][hour]) {
+                    reservations[formattedDate][company][hour].forEach((reservation) => {
+                        reservationDetails += `<div class='event' style='background: #28a745;'>
                             <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
-                            <button onclick="editReservation('${formattedDate}', '${company}', '${hour}', ${index})">✏️</button>
-                            <button onclick="deleteReservation('${formattedDate}', '${company}', '${hour}', ${index})">🗑️</button>
+                            <button onclick="editReservation('${reservation.id}', '${formattedDate}', '${company}', '${hour}')">✏️</button>
+                            <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
                         </div>`;
                     });
                     totalCount += reservations[formattedDate][company][hour].length;
@@ -54,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    window.reserve = function (hour) {
+    window.reserve = async function (hour) {
         const person1 = prompt("Ingrese el responsable de la reunión:");
         if (!person1) return;
         const person2 = prompt("Ingrese con quien o en qué estará:");
@@ -62,50 +72,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const company = companySelect.value;
         const formattedDate = dateInput.value;
-        let reservations = JSON.parse(localStorage.getItem("reservations")) || {};
-        if (!reservations[formattedDate]) reservations[formattedDate] = {};
-        if (!reservations[formattedDate][company]) reservations[formattedDate][company] = {};
-        if (!reservations[formattedDate][company][hour]) reservations[formattedDate][company][hour] = [];
 
-        // Verificar si ya existe la reserva
-        const exists = reservations[formattedDate][company][hour].some(res => res.person1 === person1 && res.person2 === person2);
-        if (exists) {
-            alert("Esta reunión ya está reservada.");
-            return;
-        }
-
-        reservations[formattedDate][company][hour].push({ person1, person2 });
-        localStorage.setItem("reservations", JSON.stringify(reservations));
+        await addDoc(reservationsCollection, {
+            date: formattedDate,
+            company: company,
+            hour: hour,
+            person1: person1,
+            person2: person2
+        });
         loadReservations();
     };
 
-    window.editReservation = function (date, company, hour, index) {
-        let reservations = JSON.parse(localStorage.getItem("reservations"));
-        const updatedPerson1 = prompt("Editar responsable:", reservations[date][company][hour][index].person1);
+    window.editReservation = async function (id, date, company, hour) {
+        const updatedPerson1 = prompt("Editar responsable:");
         if (!updatedPerson1) return;
-        const updatedPerson2 = prompt("Editar con quién o qué:", reservations[date][company][hour][index].person2);
+        const updatedPerson2 = prompt("Editar con quién o qué:");
         if (!updatedPerson2) return;
 
-        reservations[date][company][hour][index] = { person1: updatedPerson1, person2: updatedPerson2 };
-        localStorage.setItem("reservations", JSON.stringify(reservations));
+        await updateDoc(doc(db, "reservations", id), {
+            person1: updatedPerson1,
+            person2: updatedPerson2
+        });
         loadReservations();
     };
 
-    window.deleteReservation = function (date, company, hour, index) {
+    window.deleteReservation = async function (id) {
         if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) return;
-        
-        let reservations = JSON.parse(localStorage.getItem("reservations"));
-        reservations[date][company][hour].splice(index, 1);
-        if (reservations[date][company][hour].length === 0) {
-            delete reservations[date][company][hour];
-        }
-        if (Object.keys(reservations[date][company]).length === 0) {
-            delete reservations[date][company];
-        }
-        if (Object.keys(reservations[date]).length === 0) {
-            delete reservations[date];
-        }
-        localStorage.setItem("reservations", JSON.stringify(reservations));
+        await deleteDoc(doc(db, "reservations", id));
         loadReservations();
     };
 
