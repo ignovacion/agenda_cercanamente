@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (reservations[formattedDate][company][hour]) {
                     reservations[formattedDate][company][hour].forEach((reservation) => {
                         reservationDetails += `<div class='event' style='background: #28a745;'>
-                            <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
+                            <strong>${hour}</strong>: ${reservation.person1} por ${reservation.person2} (${company})
                             <button onclick="editReservation('${reservation.id}', '${formattedDate}', '${company}', '${hour}')">✏️</button>
                             <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
                         </div>`;
@@ -87,9 +87,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.reserve = async function (hour) {
-        const person1 = prompt("Ingrese el responsable de la reunión:");
+        const person1 = prompt("Participantes la de Sesión: Profesional y Paciente");
         if (!person1) return;
-        const person2 = prompt("Ingrese con quien o en qué estará:");
+        const person2 = prompt("Ingrese qué medio usara: Zoom, Whatsapp, Meet, Otro.");
         if (!person2) return;
 
         const company = companySelect.value;
@@ -106,9 +106,9 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     window.editReservation = async function (id) {
-        const updatedPerson1 = prompt("Editar responsable:");
+        const updatedPerson1 = prompt("Editar participantes:");
         if (!updatedPerson1) return;
-        const updatedPerson2 = prompt("Editar con quién o qué:");
+        const updatedPerson2 = prompt("Editar medio:");
         if (!updatedPerson2) return;
 
         await updateDoc(doc(db, "reservations", id), {
