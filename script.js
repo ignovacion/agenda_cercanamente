@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -15,117 +15,61 @@ const firebaseConfig = {
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const reservationsCollection = collection(db, "reservations");
 
-// Exportar Firestore
-export { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc };
-
-document.addEventListener("DOMContentLoaded", function () {
-    const schedule = document.getElementById("schedule");
-    const professionalSelect = document.getElementById("professional");
+async function loadReservations() {
     const calendar = document.getElementById("calendar");
-    const dateInput = document.getElementById("date-input");
-    const reservationsCollection = collection(db, "reservations");
-    
-    function formatDate(date) {
-        const day = String(date.getDate()).padStart(2, '0'); // Día con dos dígitos
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes con dos dígitos
-        const year = date.getFullYear(); // Año completo
-        return `${day}-${month}-${year}`; // Retorna DD-MM-YYYY
-    }
+    calendar.innerHTML = "";
 
-    async function loadReservations() {
-        schedule.innerHTML = "";
-        calendar.innerHTML = "";
-        const formattedDate = dateInput.value;
-        
-        const querySnapshot = await getDocs(reservationsCollection);
-        let reservations = {};
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (!reservations[data.date]) reservations[data.date] = [];
-            reservations[data.date].push({ id: doc.id, ...data });
-        });
+    const querySnapshot = await getDocs(reservationsCollection);
+    let reservations = {};
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (!reservations[data.date]) reservations[data.date] = [];
+        reservations[data.date].push({ id: doc.id, ...data });
+    });
 
-        const hours = [];
-        for (let i = 8; i < 22; i++) {
-            [":00", ":15", ":20", ":30"].forEach(suffix => {
-                hours.push(`${i}${suffix}`);
-            });
-        }
-
-        hours.forEach(hour => {
-            let reservationDetails = "";
-            (reservations[formattedDate] || []).forEach(reservation => {
-                reservationDetails += `<div class='event' style='background: #28a745;'>
-                    <strong>${hour}</strong>: ${reservation.patient} (${reservation.medium}) - ${reservation.state}
-                    <button onclick="editReservation('${reservation.id}')">✏️</button>
-                    <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
-                </div>`;
-            });
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td><input type='text' placeholder='Paciente' id='patient-${hour}'></td>
-                <td>
-                    <select id='medium-${hour}'>
-                        <option value='Zoom'>Zoom</option>
-                        <option value='WhatsApp'>WhatsApp</option>
-                        <option value='Meet'>Meet</option>
-                        <option value='Otro'>Otro</option>
-                    </select>
-                </td>
-                <td>
-                    <select id='state-${hour}'>
-                        <option value='Presente'>Presente</option>
-                        <option value='Ausente'>Ausente</option>
-                    </select>
-                </td>
-                <td>${hour}</td>
-                <td><button onclick="reserve('${hour}')">Reservar</button></td>
-            `;
-            schedule.appendChild(row);
-            calendar.innerHTML += reservationDetails;
+    for (const date in reservations) {
+        reservations[date].forEach(reservation => {
+            const event = document.createElement("div");
+            event.classList.add("event");
+            event.innerHTML = `<strong>${reservation.date} - ${reservation.hour}</strong>: 
+                ${reservation.patient} (${reservation.medium}) - ${reservation.state}`;
+            calendar.appendChild(event);
         });
     }
+}
 
-    window.reserve = async function (hour) {
-        const patient = document.getElementById(`patient-${hour}`).value;
-        const medium = document.getElementById(`medium-${hour}`).value;
-        const state = document.getElementById(`state-${hour}`).value;
-        const professional = professionalSelect.value;
-        const formattedDate = dateInput.value;
+window.reserve = async function () {
+    const patient = document.getElementById("patient").value;
+    const medium = document.getElementById("medium").value;
+    const state = document.getElementById("state").value;
+    const professional = document.getElementById("professional").value;
+    const formattedDate = document.getElementById("date-input").value;
+    const hour = document.getElementById("hour").value;
+    const repeatInterval = parseInt(document.getElementById("repeat").value);
+    const repeatCount = parseInt(document.getElementById("repeat-count").value);
 
-        if (!patient) return alert("Debe ingresar un paciente");
+    if (!patient || !hour) return alert("Debe ingresar un paciente y una hora válida");
+
+    let date = new Date(formattedDate.split('-').reverse().join('-'));
+
+    for (let i = 0; i < repeatCount; i++) {
+        let formattedNewDate = date.toISOString().split("T")[0].split('-').reverse().join('-');
 
         await addDoc(reservationsCollection, {
-            date: formattedDate,
+            date: formattedNewDate,
             professional: professional,
             hour: hour,
             patient: patient,
             medium: medium,
             state: state
         });
-        loadReservations();
-    };
 
-    window.editReservation = async function (id) {
-        const updatedState = prompt("Editar estado (Presente/Ausente):");
-        if (!updatedState) return;
+        date.setDate(date.getDate() + repeatInterval);
+    }
 
-        await updateDoc(doc(db, "reservations", id), {
-            state: updatedState
-        });
-        loadReservations();
-    };
-
-    window.deleteReservation = async function (id) {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) return;
-        await deleteDoc(doc(db, "reservations", id));
-        loadReservations();
-    };
-
-    dateInput.addEventListener("change", loadReservations);
-    professionalSelect.addEventListener("change", loadReservations);
-    dateInput.value = formatDate(new Date());
     loadReservations();
-});
+};
+
+document.addEventListener("DOMContentLoaded", loadReservations);
