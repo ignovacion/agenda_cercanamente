@@ -21,7 +21,7 @@ export { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc };
 
 document.addEventListener("DOMContentLoaded", function () {
     const schedule = document.getElementById("schedule");
-    const companySelect = document.getElementById("company");
+    const professionalSelect = document.getElementById("professional");
     const calendar = document.getElementById("calendar");
     const dateInput = document.getElementById("date-input");
     const reservationsCollection = collection(db, "reservations");
@@ -42,96 +42,90 @@ document.addEventListener("DOMContentLoaded", function () {
         let reservations = {};
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            if (!reservations[data.date]) reservations[data.date] = {};
-            if (!reservations[data.date][data.company]) reservations[data.date][data.company] = {};
-            if (!reservations[data.date][data.company][data.hour]) reservations[data.date][data.company][data.hour] = [];
-            reservations[data.date][data.company][data.hour].push({ id: doc.id, person1: data.person1, person2: data.person2 });
+            if (!reservations[data.date]) reservations[data.date] = [];
+            reservations[data.date].push({ id: doc.id, ...data });
         });
 
         const hours = [];
         for (let i = 8; i < 22; i++) {
-            hours.push(`${i}:00 - ${i + 1}:00`);
+            [":00", ":15", ":20", ":30"].forEach(suffix => {
+                hours.push(`${i}${suffix}`);
+            });
         }
 
         hours.forEach(hour => {
-            let totalCount = 0;
             let reservationDetails = "";
-            
-            Object.keys(reservations[formattedDate] || {}).forEach(company => {
-                if (reservations[formattedDate][company][hour]) {
-                    reservations[formattedDate][company][hour].forEach((reservation) => {
-                        reservationDetails += `<div class='event' style='background: #28a745;'>
-                            <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
-                            <button onclick="editReservation('${reservation.id}', '${formattedDate}', '${company}', '${hour}')">✏️</button>
-                            <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
-                        </div>`;
-                    });
-                    totalCount += reservations[formattedDate][company][hour].length;
-                }
+            (reservations[formattedDate] || []).forEach(reservation => {
+                reservationDetails += `<div class='event' style='background: #28a745;'>
+                    <strong>${hour}</strong>: ${reservation.patient} (${reservation.medium}) - ${reservation.state}
+                    <button onclick="editReservation('${reservation.id}')">✏️</button>
+                    <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
+                </div>`;
             });
 
             const row = document.createElement("tr");
             row.innerHTML = `
-                <td>${hour}</td>
+                <td><input type='text' placeholder='Paciente' id='patient-${hour}'></td>
                 <td>
-                    <button onclick="reserve('${hour}')">Reservar</button>
-                    <span>${totalCount} sesiones</span>
+                    <select id='medium-${hour}'>
+                        <option value='Zoom'>Zoom</option>
+                        <option value='WhatsApp'>WhatsApp</option>
+                        <option value='Meet'>Meet</option>
+                        <option value='Otro'>Otro</option>
+                    </select>
                 </td>
+                <td>
+                    <select id='state-${hour}'>
+                        <option value='Presente'>Presente</option>
+                        <option value='Ausente'>Ausente</option>
+                    </select>
+                </td>
+                <td>${hour}</td>
+                <td><button onclick="reserve('${hour}')">Reservar</button></td>
             `;
-            if (totalCount >= 2) {
-                row.classList.add("red-alert");
-            }
             schedule.appendChild(row);
             calendar.innerHTML += reservationDetails;
         });
     }
 
     window.reserve = async function (hour) {
-        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 7 = semanal, 15 = quincenal
-        const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
-        const person1 = prompt("Ingrese el nombre del paciente, en caso de que la hora no sea puntualmente :00 escriba entreparentesis la correcta");
-        if (!person1) return;
-        const person2 = prompt("Ingrese si será Zoom, Whatsapp, Meet u otra. Agregue ademas posteriormente a la reserva de cita si el paciente quedo ausente asi: (AUSENTE)");
-        if (!person2) return;
+        const patient = document.getElementById(`patient-${hour}`).value;
+        const medium = document.getElementById(`medium-${hour}`).value;
+        const state = document.getElementById(`state-${hour}`).value;
+        const professional = professionalSelect.value;
+        const formattedDate = dateInput.value;
 
-        const company = companySelect.value;
-        let formattedDate = dateInput.value;
-        
-        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 1 = diario, 7 = semanal
-        const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
+        if (!patient) return alert("Debe ingresar un paciente");
 
-        for (let i = 0; i < repeatCount; i++) {
-            if (i > 0) {
-                let dateParts = formattedDate.split("-");
-                let newDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]) + repeatInterval);
-                if (repeatInterval > 0) {
-                let dateParts = formattedDate.split("-");
-                let newDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]) + repeatInterval);
-                formattedDate = formatDate(newDate);
-            }
-            }
-            for (let i = 0; i < repeatCount; i++) {
-            await addDoc(reservationsCollection, {
-                repeat_interval: repeatInterval,
-                repeat_interval: repeatInterval,
-                date: formattedDate,
-                company: company,
-                hour: hour,
-                person1: person1,
-                person2: person2
-            });
+        await addDoc(reservationsCollection, {
+            date: formattedDate,
+            professional: professional,
+            hour: hour,
+            patient: patient,
+            medium: medium,
+            state: state
+        });
+        loadReservations();
+    };
 
-            // Incrementa la fecha según el intervalo de repetición
-            let dateParts = formattedDate.split("-");
-            let newDate = new Date(dateParts[2], dateParts[1] - 1, parseInt(dateParts[0]) + repeatInterval);
-            formattedDate = formatDate(newDate);
-        }
-        
+    window.editReservation = async function (id) {
+        const updatedState = prompt("Editar estado (Presente/Ausente):");
+        if (!updatedState) return;
+
+        await updateDoc(doc(db, "reservations", id), {
+            state: updatedState
+        });
+        loadReservations();
+    };
+
+    window.deleteReservation = async function (id) {
+        if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) return;
+        await deleteDoc(doc(db, "reservations", id));
         loadReservations();
     };
 
     dateInput.addEventListener("change", loadReservations);
-    companySelect.addEventListener("change", loadReservations);
+    professionalSelect.addEventListener("change", loadReservations);
     dateInput.value = formatDate(new Date());
     loadReservations();
 });
