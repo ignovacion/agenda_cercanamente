@@ -2,10 +2,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const schedule = document.getElementById("schedule");
     const companySelect = document.getElementById("company");
     const calendar = document.getElementById("calendar");
-    const hours = [];
+    const dateDisplay = document.getElementById("date-display");
+    const prevDay = document.getElementById("prev-day");
+    const nextDay = document.getElementById("next-day");
+    let currentDate = new Date();
 
-    for (let i = 8; i < 22; i++) {
-        hours.push(`${i}:00 - ${i + 1}:00`);
+    function formatDate(date) {
+        return date.toISOString().split("T")[0];
     }
 
     function loadReservations() {
@@ -13,10 +16,19 @@ document.addEventListener("DOMContentLoaded", function () {
         calendar.innerHTML = "";
         const company = companySelect.value;
         const reservations = JSON.parse(localStorage.getItem("reservations")) || {};
+        const formattedDate = formatDate(currentDate);
+        dateDisplay.textContent = currentDate.toLocaleDateString();
 
-        // Mostrar horarios en tabla
+        if (!reservations[company]) reservations[company] = {};
+        if (!reservations[company][formattedDate]) reservations[company][formattedDate] = {};
+
+        const hours = [];
+        for (let i = 8; i < 22; i++) {
+            hours.push(`${i}:00 - ${i + 1}:00`);
+        }
+
         hours.forEach(hour => {
-            const count = reservations[company]?.[hour]?.length || 0;
+            const count = reservations[company][formattedDate][hour]?.length || 0;
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${hour}</td>
@@ -31,9 +43,8 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.appendChild(row);
         });
 
-        // Mostrar reservas en el calendario
-        Object.keys(reservations[company] || {}).forEach(hour => {
-            reservations[company][hour].forEach(name => {
+        Object.keys(reservations[company][formattedDate] || {}).forEach(hour => {
+            reservations[company][formattedDate][hour].forEach(name => {
                 const event = document.createElement("div");
                 event.classList.add("event");
                 event.innerHTML = `<strong>${hour}</strong>: ${name}`;
@@ -47,14 +58,26 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!name) return;
 
         const company = companySelect.value;
+        const formattedDate = formatDate(currentDate);
         let reservations = JSON.parse(localStorage.getItem("reservations")) || {};
         if (!reservations[company]) reservations[company] = {};
-        if (!reservations[company][hour]) reservations[company][hour] = [];
+        if (!reservations[company][formattedDate]) reservations[company][formattedDate] = {};
+        if (!reservations[company][formattedDate][hour]) reservations[company][formattedDate][hour] = [];
 
-        reservations[company][hour].push(name);
+        reservations[company][formattedDate][hour].push(name);
         localStorage.setItem("reservations", JSON.stringify(reservations));
         loadReservations();
     };
+
+    prevDay.addEventListener("click", function () {
+        currentDate.setDate(currentDate.getDate() - 1);
+        loadReservations();
+    });
+
+    nextDay.addEventListener("click", function () {
+        currentDate.setDate(currentDate.getDate() + 1);
+        loadReservations();
+    });
 
     companySelect.addEventListener("change", loadReservations);
     loadReservations();
