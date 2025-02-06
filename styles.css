@@ -43,3 +43,19 @@ button:hover {
 .red-alert {
     background-color: #ffcccc !important;
 }
+
+.calendar {
+    margin-top: 20px;
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.event {
+    background: #007bff;
+    color: white;
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 5px;
+}
