@@ -86,15 +86,19 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    window.reserve = async function (hour) {
-        const person1 = prompt("Ingresa el Nombre del Paciente. En caso de ser una hora especifica anotarlo entre paréntesis");
-        if (!person1) return;
-        const person2 = prompt("Ingrese qué medio usará: Zoom, Whatsapp, Meet, Otro. Si la persona se ausenta editar y poner AUSENTE.");
-        if (!person2) return;
+window.reserve = async function (hour) {
+    const person1 = prompt("Ingrese el responsable de la reunión:");
+    if (!person1) return;
+    const person2 = prompt("Ingrese con quien o en qué estará:");
+    if (!person2) return;
 
-        const company = companySelect.value;
-        const formattedDate = dateInput.value;
+    const company = companySelect.value;
+    let formattedDate = dateInput.value;
+    
+    const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 1 = diario, 7 = semanal
+    const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
 
+    for (let i = 0; i < repeatCount; i++) {
         await addDoc(reservationsCollection, {
             date: formattedDate,
             company: company,
@@ -102,8 +106,15 @@ document.addEventListener("DOMContentLoaded", function () {
             person1: person1,
             person2: person2
         });
-        loadReservations();
-    };
+
+        // Incrementa la fecha según el intervalo de repetición
+        let dateParts = formattedDate.split("-");
+        let day = parseInt(dateParts[0]) + repeatInterval;
+        formattedDate = `${String(day).padStart(2, '0')}-${dateParts[1]}-${dateParts[2]}`;
+    }
+    
+    loadReservations();
+};
 
     window.editReservation = async function (id) {
         const updatedPerson1 = prompt("Editar participantes:");
