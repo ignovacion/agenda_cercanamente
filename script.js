@@ -11,12 +11,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadReservations() {
         schedule.innerHTML = "";
         calendar.innerHTML = "";
-        const company = companySelect.value;
         const reservations = JSON.parse(localStorage.getItem("reservations")) || {};
         const formattedDate = dateInput.value;
 
         if (!reservations[formattedDate]) reservations[formattedDate] = {};
-        if (!reservations[formattedDate][company]) reservations[formattedDate][company] = {};
 
         const hours = [];
         for (let i = 8; i < 22; i++) {
@@ -24,28 +22,31 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         hours.forEach(hour => {
-            const count = reservations[formattedDate][company][hour]?.length || 0;
+            let totalCount = 0;
+            let reservationDetails = "";
+
+            Object.keys(reservations[formattedDate]).forEach(company => {
+                if (reservations[formattedDate][company] && reservations[formattedDate][company][hour]) {
+                    totalCount += reservations[formattedDate][company][hour].length;
+                    reservations[formattedDate][company][hour].forEach(name => {
+                        reservationDetails += `<div class='event'><strong>${hour}</strong>: ${name} (${company})</div>`;
+                    });
+                }
+            });
+
             const row = document.createElement("tr");
             row.innerHTML = `
                 <td>${hour}</td>
                 <td>
                     <button onclick="reserve('${hour}')">Reservar</button>
-                    <span>${count} sesiones</span>
+                    <span>${totalCount} sesiones</span>
                 </td>
             `;
-            if (count >= 2) {
+            if (totalCount >= 2) {
                 row.classList.add("red-alert");
             }
             schedule.appendChild(row);
-        });
-
-        Object.keys(reservations[formattedDate][company] || {}).forEach(hour => {
-            reservations[formattedDate][company][hour].forEach(name => {
-                const event = document.createElement("div");
-                event.classList.add("event");
-                event.innerHTML = `<strong>${hour}</strong>: ${name} (${company})`;
-                calendar.appendChild(event);
-            });
+            calendar.innerHTML += reservationDetails;
         });
     }
 
