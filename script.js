@@ -89,9 +89,9 @@ document.addEventListener("DOMContentLoaded", function () {
     window.reserve = async function (hour) {
         const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 7 = semanal, 15 = quincenal
         const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
-        const person1 = prompt("Ingrese el responsable de la reunión:");
+        const person1 = prompt("Ingrese el nombre del paciente, en caso de que la hora no sea puntualmente :00 escriba entreparentesis la correcta");
         if (!person1) return;
-        const person2 = prompt("Ingrese con quien o en qué estará:");
+        const person2 = prompt("Ingrese si será Zoom, Whatsapp, Meet u otra. Agregue ademas posteriormente a la reserva de cita si el paciente quedo ausente asi: (AUSENTE)");
         if (!person2) return;
 
         const company = companySelect.value;
