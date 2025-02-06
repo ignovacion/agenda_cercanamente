@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -17,110 +16,116 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Función para cargar las reservas desde Firestore
-async function loadReservations() {
+// Exportar Firestore
+export { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc };
+
+document.addEventListener("DOMContentLoaded", function () {
     const schedule = document.getElementById("schedule");
+    const companySelect = document.getElementById("company");
     const calendar = document.getElementById("calendar");
     const dateInput = document.getElementById("date-input");
     const reservationsCollection = collection(db, "reservations");
-
-    schedule.innerHTML = "";
-    calendar.innerHTML = "";
-    const formattedDate = dateInput.value;
-
-    const querySnapshot = await getDocs(reservationsCollection);
-    let reservations = {};
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (!reservations[data.date]) reservations[data.date] = {};
-        if (!reservations[data.date][data.company]) reservations[data.date][data.company] = {};
-        if (!reservations[data.date][data.company][data.hour]) reservations[data.date][data.company][data.hour] = [];
-        reservations[data.date][data.company][data.hour].push({ id: doc.id, person1: data.person1, person2: data.person2 });
-    });
-
-    const hours = [];
-    for (let i = 8; i < 22; i++) {
-        hours.push(`${i}:00 - ${i + 1}:00`);
+    
+    function formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0'); // Día con dos dígitos
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Mes con dos dígitos
+        const year = date.getFullYear(); // Año completo
+        return `${day}-${month}-${year}`; // Retorna DD-MM-YYYY
     }
 
-    hours.forEach(hour => {
-        let totalCount = 0;
-        let reservationDetails = "";
-
-        Object.keys(reservations[formattedDate] || {}).forEach(company => {
-            if (reservations[formattedDate][company][hour]) {
-                reservations[formattedDate][company][hour].forEach((reservation) => {
-                    reservationDetails += `<div class='event' style='background: #28a745;'>
-                        <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
-                        <button onclick="editReservation('${reservation.id}')">✏️</button>
-                        <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
-                    </div>`;
-                });
-                totalCount += reservations[formattedDate][company][hour].length;
-            }
+    async function loadReservations() {
+        schedule.innerHTML = "";
+        calendar.innerHTML = "";
+        const formattedDate = dateInput.value;
+        
+        const querySnapshot = await getDocs(reservationsCollection);
+        let reservations = {};
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (!reservations[data.date]) reservations[data.date] = {};
+            if (!reservations[data.date][data.company]) reservations[data.date][data.company] = {};
+            if (!reservations[data.date][data.company][data.hour]) reservations[data.date][data.company][data.hour] = [];
+            reservations[data.date][data.company][data.hour].push({ id: doc.id, person1: data.person1, person2: data.person2 });
         });
 
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${hour}</td>
-            <td>
-                <button onclick="reserve('${hour}')">Reservar</button>
-                <span>${totalCount} sesiones</span>
-            </td>
-        `;
-        if (totalCount >= 2) {
-            row.classList.add("red-alert");
+        const hours = [];
+        for (let i = 8; i < 22; i++) {
+            hours.push(`${i}:00 - ${i + 1}:00`);
         }
-        schedule.appendChild(row);
-        calendar.innerHTML += reservationDetails;
-    });
-}
 
-// Función para hacer una nueva reserva
-window.reserve = async function (hour) {
-    const person1 = prompt("Ingrese el responsable de la reunión:");
-    if (!person1) return;
-    const person2 = prompt("Ingrese con quien o en qué estará:");
-    if (!person2) return;
+        hours.forEach(hour => {
+            let totalCount = 0;
+            let reservationDetails = "";
+            
+            Object.keys(reservations[formattedDate] || {}).forEach(company => {
+                if (reservations[formattedDate][company][hour]) {
+                    reservations[formattedDate][company][hour].forEach((reservation) => {
+                        reservationDetails += `<div class='event' style='background: #28a745;'>
+                            <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
+                            <button onclick="editReservation('${reservation.id}', '${formattedDate}', '${company}', '${hour}')">✏️</button>
+                            <button onclick="deleteReservation('${reservation.id}')">🗑️</button>
+                        </div>`;
+                    });
+                    totalCount += reservations[formattedDate][company][hour].length;
+                }
+            });
 
-    const company = document.getElementById("company").value;
-    const formattedDate = document.getElementById("date-input").value;
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${hour}</td>
+                <td>
+                    <button onclick="reserve('${hour}')">Reservar</button>
+                    <span>${totalCount} sesiones</span>
+                </td>
+            `;
+            if (totalCount >= 2) {
+                row.classList.add("red-alert");
+            }
+            schedule.appendChild(row);
+            calendar.innerHTML += reservationDetails;
+        });
+    }
 
-    await addDoc(collection(db, "reservations"), {
-        date: formattedDate,
-        company: company,
-        hour: hour,
-        person1: person1,
-        person2: person2
-    });
-    loadReservations();
-};
+    window.reserve = async function (hour) {
+        const person1 = prompt("Ingrese el responsable de la reunión:");
+        if (!person1) return;
+        const person2 = prompt("Ingrese con quien o en qué estará:");
+        if (!person2) return;
 
-// Función para editar una reserva
-window.editReservation = async function (id) {
-    const updatedPerson1 = prompt("Editar responsable:");
-    if (!updatedPerson1) return;
-    const updatedPerson2 = prompt("Editar con quién o qué:");
-    if (!updatedPerson2) return;
+        const company = companySelect.value;
+        const formattedDate = dateInput.value;
 
-    await updateDoc(doc(db, "reservations", id), {
-        person1: updatedPerson1,
-        person2: updatedPerson2
-    });
-    loadReservations();
-};
+        await addDoc(reservationsCollection, {
+            date: formattedDate,
+            company: company,
+            hour: hour,
+            person1: person1,
+            person2: person2
+        });
+        loadReservations();
+    };
 
-// Función para eliminar una reserva
-window.deleteReservation = async function (id) {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) return;
-    await deleteDoc(doc(db, "reservations", id));
-    loadReservations();
-};
+    window.editReservation = async function (id) {
+        const updatedPerson1 = prompt("Editar responsable:");
+        if (!updatedPerson1) return;
+        const updatedPerson2 = prompt("Editar con quién o qué:");
+        if (!updatedPerson2) return;
 
-// Eventos
-document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("date-input").addEventListener("change", loadReservations);
-    document.getElementById("company").addEventListener("change", loadReservations);
-    document.getElementById("date-input").value = new Date().toISOString().split("T")[0];
+        await updateDoc(doc(db, "reservations", id), {
+            person1: updatedPerson1,
+            person2: updatedPerson2
+        });
+        loadReservations();
+    };
+
+    window.deleteReservation = async function (id) {
+        if (!confirm("¿Estás seguro de que quieres eliminar esta reserva?")) return;
+        await deleteDoc(doc(db, "reservations", id));
+        loadReservations();
+    };
+
+    dateInput.addEventListener("change", loadReservations);
+    companySelect.addEventListener("change", loadReservations);
+    dateInput.value = formatDate(new Date());
     loadReservations();
 });
