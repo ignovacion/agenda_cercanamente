@@ -87,19 +87,25 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.reserve = async function (hour) {
-        const person1 = prompt("Ingrese nombre del Paciente. En caso de que sea otra hora diferente a las :00 indíquela entre paréntesis");
+        const person1 = prompt("Ingrese el responsable de la reunión:");
         if (!person1) return;
-        const person2 = prompt("Ingrese si será por Zoom, Whatsapp, Meet, u otra. En caso de ser AUSENTE editar posterior a la sesión");
+        const person2 = prompt("Ingrese con quien o en qué estará:");
         if (!person2) return;
 
         const company = companySelect.value;
         let formattedDate = dateInput.value;
         
-        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 7 = semanal, 15 = quincenal
+        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 1 = diario, 7 = semanal
         const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
 
         for (let i = 0; i < repeatCount; i++) {
+            if (i > 0) {
+                let dateParts = formattedDate.split("-");
+                let newDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]) + repeatInterval);
+                formattedDate = formatDate(newDate);
+            }
             await addDoc(reservationsCollection, {
+                repeat_interval: repeatInterval,
                 repeat_interval: repeatInterval,
                 date: formattedDate,
                 company: company,
