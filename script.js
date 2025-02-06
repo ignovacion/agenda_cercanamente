@@ -1,4 +1,23 @@
-import { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+// Configuración de Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyCUqdOd9hrynY2q_3qJPIqGtEN-kQzE7Vc",
+    authDomain: "zoom-e3d70.firebaseapp.com",
+    projectId: "zoom-e3d70",
+    storageBucket: "zoom-e3d70.firebasestorage.app",
+    messagingSenderId: "312018166922",
+    appId: "1:312018166922:web:b69f5d99e1aecbbe14f973",
+    measurementId: "G-YNHRP63ZHX"
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Exportar Firestore
+export { db, collection, addDoc, getDocs, deleteDoc, doc, updateDoc };
 
 document.addEventListener("DOMContentLoaded", function () {
     const schedule = document.getElementById("schedule");
