@@ -27,49 +27,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             Object.keys(reservations[formattedDate]).forEach(company => {
                 if (reservations[formattedDate][company] && reservations[formattedDate][company][hour]) {
-                    totalCount += reservations[formattedDate][company][hour].length;
-                    reservations[formattedDate][company][hour].forEach(reservation => {
-                        reservationDetails += `<div class='event'><strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})</div>`;
+                    reservations[formattedDate][company][hour].forEach((reservation, index) => {
+                        reservationDetails += `<div class='event'>
+                            <strong>${hour}</strong>: ${reservation.person1} con ${reservation.person2} (${company})
+                            <button onclick="editReservation('${formattedDate}', '${company}', '${hour}', ${index})">✏️</button>
+                            <button onclick="deleteReservation('${formattedDate}', '${company}', '${hour}', ${index})">🗑️</button>
+                        </div>`;
                     });
-                }
-            });
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${hour}</td>
-                <td>
-                    <button onclick="reserve('${hour}')">Reservar</button>
-                    <span>${totalCount} sesiones</span>
-                </td>
-            `;
-            if (totalCount >= 2) {
-                row.classList.add("red-alert");
-            }
-            schedule.appendChild(row);
-            calendar.innerHTML += reservationDetails;
-        });
-    }
-
-    window.reserve = function (hour) {
-        const person1 = prompt("Ingrese el nombre de responsable de reunión:");
-        if (!person1) return;
-        const person2 = prompt("Ingrese con quien estará o el asunto de la reunión:");
-        if (!person2) return;
-
-        const company = companySelect.value;
-        const formattedDate = dateInput.value;
-        let reservations = JSON.parse(localStorage.getItem("reservations")) || {};
-        if (!reservations[formattedDate]) reservations[formattedDate] = {};
-        if (!reservations[formattedDate][company]) reservations[formattedDate][company] = {};
-        if (!reservations[formattedDate][company][hour]) reservations[formattedDate][company][hour] = [];
-
-        reservations[formattedDate][company][hour].push({ person1, person2 });
-        localStorage.setItem("reservations", JSON.stringify(reservations));
-        loadReservations();
-    };
-
-    dateInput.addEventListener("change", loadReservations);
-    companySelect.addEventListener("change", loadReservations);
-    dateInput.value = formatDate(new Date());
-    loadReservations();
-});
+                    totalCoun
