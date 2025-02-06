@@ -51,9 +51,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.reserve = function (hour) {
-        const person1 = prompt("Ingrese el primer nombre/asunto de la reunión:");
+        const person1 = prompt("Ingrese el nombre de responsable de reunión:");
         if (!person1) return;
-        const person2 = prompt("Ingrese el segundo nombre/asunto de la reunión:");
+        const person2 = prompt("Ingrese con quien estará o el asunto de la reunión:");
         if (!person2) return;
 
         const company = companySelect.value;
