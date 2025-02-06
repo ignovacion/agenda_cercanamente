@@ -87,9 +87,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.reserve = async function (hour) {
-        const person1 = prompt("Participantes la de Sesión: Profesional y Paciente");
+        const person1 = prompt(" Ingresa Profesional y Paciente, en caso de ser una hora especifica anotarlo entre paréntesis");
         if (!person1) return;
-        const person2 = prompt("Ingrese qué medio usara: Zoom, Whatsapp, Meet, Otro.");
+        const person2 = prompt("Ingrese qué medio usara: Zoom, Whatsapp, Meet, Otro. Si la persona se ausenta editar y poner AUSENTE.");
         if (!person2) return;
 
         const company = companySelect.value;
