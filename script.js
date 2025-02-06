@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const company = companySelect.value;
         let formattedDate = dateInput.value;
         
-        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 1 = diario, 7 = semanal
+        const repeatInterval = parseInt(document.getElementById("repeat").value); // 0 = no repetir, 7 = semanal, 15 = quincenal
         const repeatCount = parseInt(document.getElementById("repeat-count").value); // Número de repeticiones
 
         for (let i = 0; i < repeatCount; i++) {
